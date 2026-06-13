@@ -11,25 +11,27 @@ const TodoList = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let unsubscribeSnapshot;
+
     // Ensure the user is logged in
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (!user) {
         navigate('/login');
+      } else {
+        const q = query(collection(db, 'todos'), orderBy('createdAt', 'desc'));
+        unsubscribeSnapshot = onSnapshot(q, (querySnapshot) => {
+          const todosArray = [];
+          querySnapshot.forEach((doc) => {
+            todosArray.push({ id: doc.id, ...doc.data() });
+          });
+          setTodos(todosArray);
+        });
       }
-    });
-
-    const q = query(collection(db, 'todos'), orderBy('createdAt', 'desc'));
-    const unsubscribeSnapshot = onSnapshot(q, (querySnapshot) => {
-      const todosArray = [];
-      querySnapshot.forEach((doc) => {
-        todosArray.push({ id: doc.id, ...doc.data() });
-      });
-      setTodos(todosArray);
     });
 
     return () => {
       unsubscribeAuth();
-      unsubscribeSnapshot();
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
     };
   }, [navigate]);
 
